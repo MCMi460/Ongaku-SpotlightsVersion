@@ -11,6 +11,7 @@ import Foundation
 import MusicKit
 import os.log
 import ScriptingBridge
+import AppKit
 
 // Adapted from:
 // https://gist.github.com/pvieito/3aee709b97602bfc44961df575e2b696
@@ -44,6 +45,8 @@ enum MusicPlayerError: Error {
 private var log: Logger = .init(subsystem: "io.github.spotlightishere.Ongaku", category: "music-player")
 
 private func fetchPlayerState() throws -> PlayerState {
+    if NSRunningApplication.runningApplications(withBundleIdentifier: musicBundleId).count == 0 { return .closed }
+    
     guard let music: AnyObject = SBApplication(bundleIdentifier: musicBundleId),
           let playerState = music.playerState,
           let track = music.currentTrack
@@ -89,6 +92,16 @@ class MusicPlayer: Player {
         sink = DistributedNotificationCenter.default.publisher(for: name)
             .sink { [weak self] notification in
                 guard let self else { return }
+
+                // When Music quits, it informs us that playback has stopped.
+                // If we attempt to further query it via AppleScript, it will re-open.
+                // If applicable, trust its notification.
+                if let notificationState = notification.userInfo?["Player State"] as? String {
+                    if notificationState == "Stopped" {
+                        state.send(.stopped)
+                        return
+                    }
+                }
 
                 guard var playerState = try? fetchPlayerState() else {
                     log.error("Failed to fetch player state upon receiving a notification, not sending a new player state.")

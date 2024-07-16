@@ -32,11 +32,7 @@ struct Ongaku: App {
 
         let scrobbler = ScrobblerController(player: player)
         _scrobbler = StateObject(wrappedValue: scrobbler)
-        if scrobbler.session != nil {
-            scrobbler.enabled = true
-        } else {
-            scrobbler.enabled = false
-        }
+        scrobbler.enabled = scrobbler.session != nil
     }
 
     let player: Player

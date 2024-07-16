@@ -110,6 +110,9 @@ class RPCController: SwordRPCDelegate, ObservableObject {
             await updateActive(active, paused: false)
         case let .paused(active):
             await updateActive(active, paused: true)
+        case .closed:
+            rpc.clearPresence()
+            return
         }
 
         log.info("Sending presence: \(String(describing: presence))")
