@@ -23,7 +23,7 @@ enum PlayerState {
 
     /// Indicates that the player is not playing anything.
     case stopped
-    
+
     /// Indicates that no presence should be shown
     case closed
 }

@@ -24,6 +24,10 @@ class RPCController: SwordRPCDelegate, ObservableObject {
     var player: Player
     var playerSink: AnyCancellable?
     @Published var enabled: Bool = true
+    var showStore: Bool = true
+    var joinRequests: Bool = false
+    var Presence: RichPresence?
+    var currentTrack: Track?
 
     init(player: Player) {
         self.player = player
@@ -50,13 +54,14 @@ class RPCController: SwordRPCDelegate, ObservableObject {
 
     func updateRichPresence(playerState state: PlayerState) async {
         if !enabled { return }
-        
+
         var presence = RichPresence()
 
         func updateActive(_ active: PlayerState.Active, paused: Bool = false) async {
             log.info("Player is active, populating rich presence state accordingly")
 
             let track = active.track
+            currentTrack = track
             presence.details = track.title
             presence.state = "\(track.artist ?? "Unknown") \u{2014} \(track.album ?? "Unknown")"
 
@@ -103,7 +108,6 @@ class RPCController: SwordRPCDelegate, ObservableObject {
             presence.assets.largeText = "There's nothing here!"
             presence.assets.smallImage = "stop"
             presence.assets.smallText = "Currently stopped"
-
         // If the player is active (i.e. has a track and position), then update
         // the rich presence accordingly.
         case let .playing(active):
@@ -117,7 +121,31 @@ class RPCController: SwordRPCDelegate, ObservableObject {
 
         log.info("Sending presence: \(String(describing: presence))")
 
-        rpc.setPresence(presence)
+        Presence = presence
+        updatePresence()
+    }
+
+    func updatePresence() {
+        if Presence != nil {
+            if let track = currentTrack {
+                if showStore, track.url != nil {
+                    Presence?.buttons = [
+                        RichPresence.Button(
+                            label: "Open in Apple Music",
+                            url: track.url!
+                        ),
+                    ]
+                } else {
+                    Presence?.buttons = nil
+                }
+                if joinRequests {
+                    // TO BE IMPLEMENTED
+                } else {
+                    Presence?.secrets = nil
+                }
+            }
+            rpc.setPresence(Presence!)
+        }
     }
 }
 

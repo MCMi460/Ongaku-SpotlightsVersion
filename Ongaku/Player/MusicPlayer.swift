@@ -6,12 +6,12 @@
 //  Copyright © 2022 Spotlight Deveaux. All rights reserved.
 //
 
+import AppKit
 import Combine
 import Foundation
 import MusicKit
 import os.log
 import ScriptingBridge
-import AppKit
 
 // Adapted from:
 // https://gist.github.com/pvieito/3aee709b97602bfc44961df575e2b696
@@ -46,7 +46,7 @@ private var log: Logger = .init(subsystem: "io.github.spotlightishere.Ongaku", c
 
 private func fetchPlayerState() throws -> PlayerState {
     if NSRunningApplication.runningApplications(withBundleIdentifier: musicBundleId).count == 0 { return .closed }
-    
+
     guard let music: AnyObject = SBApplication(bundleIdentifier: musicBundleId),
           let playerState = music.playerState,
           let track = music.currentTrack

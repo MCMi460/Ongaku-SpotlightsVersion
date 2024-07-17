@@ -7,18 +7,18 @@
 //
 
 import Combine
+import MacControlCenterUI
 import os.log
 import SwiftUI
-import MacControlCenterUI
 
 private let log: Logger = .init(subsystem: "io.github.spotlightishere.Ongaku", category: "main-app")
 
 @main
 struct Ongaku: App {
     @State var isMenuPresented: Bool = false
-    let blurple: Color = Color(red: 0.34375, green: 0.39453125, blue: 0.9453125)
-    let lastFmColor: Color = Color(red: 0.83203125, green: 0.06640625, blue: 0.02734375)
-    
+    let blurple: Color = .init(red: 0.34375, green: 0.39453125, blue: 0.9453125)
+    let lastFmColor: Color = .init(red: 0.83203125, green: 0.06640625, blue: 0.02734375)
+
     init() {
         do {
             player = try MusicPlayer()
@@ -39,20 +39,21 @@ struct Ongaku: App {
     var playerSink: AnyCancellable?
     @StateObject var scrobbler: ScrobblerController
     @StateObject var rpc: RPCController
+    @State var showStore: Bool = true
+    @State var joinRequests: Bool = false
 
     var body: some Scene {
         // Designed to match the style of the default
         // Storyboard-based menu items.
         MenuBarExtra("Ongaku", image: "status_icon") {
-            
             MacControlCenterMenu(isPresented: $isMenuPresented) {
                 MenuHeader("Ongaku") {
                     Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as! String)
                         .foregroundColor(.secondary)
                 }
-                
+
                 MenuSection("Active")
-                
+
                 HStack {
                     MenuCircleToggle(
                         isOn: $rpc.enabled,
@@ -77,7 +78,7 @@ struct Ongaku: App {
                             image: Image("last_fm"),
                             color: lastFmColor
                         )
-                    ) { Text("Last.fm") } onClick: { toggle in
+                    ) { Text("Last.fm") } onClick: { _ in
                         if scrobbler.session == nil {
                             scrobbler.enabled = false
                             Task(priority: .userInitiated) {
@@ -88,7 +89,46 @@ struct Ongaku: App {
                     }
                 }
                 .frame(height: 80)
-                
+
+                MenuDisclosureSection("Discord", initiallyExpanded: false) {
+                    MenuToggle(
+                        isOn: $showStore,
+                        style: .init(
+                            image: Image(systemName: "music.note.list"),
+                            color: blurple
+                        )
+                    ) {
+                        Text("Store button")
+                    } onClick: { toggle in
+                        rpc.showStore = toggle
+                        if toggle {
+                            joinRequests = false
+                            rpc.joinRequests = false
+                        }
+                        Task(priority: .userInitiated) {
+                            rpc.updatePresence()
+                        }
+                    }
+                    MenuToggle(
+                        isOn: $joinRequests,
+                        style: .init(
+                            image: Image(systemName: "tray.and.arrow.down.fill"),
+                            color: blurple
+                        )
+                    ) {
+                        Text("Join requests")
+                    } onClick: { toggle in
+                        rpc.joinRequests = toggle
+                        if toggle {
+                            showStore = false
+                            rpc.showStore = false
+                        }
+                        Task(priority: .userInitiated) {
+                            rpc.updatePresence()
+                        }
+                    }
+                }
+
                 MenuDisclosureSection("Last.fm", initiallyExpanded: false) {
                     if let session = scrobbler.session {
                         MenuCommand {
@@ -103,7 +143,7 @@ struct Ongaku: App {
                                 Spacer()
                             }
                         }
-                        
+
                         MenuCommand {
                             do {
                                 try scrobbler.clearSession()
@@ -139,7 +179,7 @@ struct Ongaku: App {
                         }
                     }
                 }
-                
+
                 Divider()
 
                 MenuCommand {
